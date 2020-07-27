@@ -28,7 +28,13 @@ catkin_package(
 		visualization_msgs
 )
 
-set(CMAKE_CXX_STANDARD 14)
+include_directories(${catkin_INCLUDE_DIRS})
+
+if ("${CMAKE_VERSION}" VERSION_LESS "3.1")
+	add_compile_options(-std=c++14)
+else ()
+	set(CMAKE_CXX_STANDARD 14)
+endif ()
 
 # check for MOVEIT_MASTER
 include(CheckIncludeFileCXX)
