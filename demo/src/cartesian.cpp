@@ -37,6 +37,7 @@
 #include <moveit/task_constructor/stages/fixed_state.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 #include <moveit/task_constructor/solvers/joint_interpolation.h>
+#include <moveit/task_constructor/solvers/pipeline_planner.h>
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/stages/move_relative.h>
 #include <moveit/task_constructor/stages/connect.h>
@@ -68,6 +69,31 @@ Task createTask() {
 		auto fixed = std::make_unique<stages::FixedState>("initial state");
 		fixed->setState(scene);
 		t.add(std::move(fixed));
+	}
+
+	{
+		auto pilz_planner = std::make_shared<solvers::PipelinePlanner>();
+		pilz_planner->setPlannerId("CIRC");
+		pilz_planner->setProperty("max_acceleration_scaling_factor", 0.1);
+		pilz_planner->setProperty("max_velocity_scaling_factor", 0.1);
+		auto stage = std::make_unique<stages::MoveTo>("pilz", pilz_planner);
+		stage->setGroup(group);
+		geometry_msgs::PoseStamped goal;
+		goal.header.frame_id = "world";
+		goal.pose.orientation.x = 1;
+		goal.pose.position.x = 0.45;
+		goal.pose.position.z = 0.45;
+		stage->setGoal(goal);
+		moveit_msgs::Constraints path_constraints;
+		path_constraints.name = "interim";
+		moveit_msgs::PositionConstraint pos_constraint;
+		goal.pose.position.x = 0.3;
+		pos_constraint.constraint_region.primitive_poses.push_back(goal.pose);
+		pos_constraint.link_name = "panda_link8";
+		pos_constraint.header.frame_id = "world";
+		path_constraints.position_constraints.push_back(pos_constraint);
+		stage->setPathConstraints(path_constraints);
+		t.add(std::move(stage));
 	}
 
 	{
